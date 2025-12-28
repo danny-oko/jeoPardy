@@ -1,115 +1,169 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Plus, RotateCcw, Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Scoreboard } from "@/components/scoreboard"
-import { GameBoard } from "@/components/game-board"
-import { TeamManager } from "@/components/team-manager"
-import { CategoryManager } from "@/components/category-manager"
-import { QuestionModal } from "@/components/question-modal"
-import type { Team, Question, Category } from "@/lib/types"
+import { CategoryManager } from "@/components/category-manager";
+import { GameBoard } from "@/components/game-board";
+import { QuestionModal } from "@/components/question-modal";
+import { Scoreboard } from "@/components/scoreboard";
+import { TeamManager } from "@/components/team-manager";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { Category, Question, Team } from "@/lib/types";
+import { Plus, RotateCcw, Trash2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: "1", name: "Science" },
-  { id: "2", name: "History" },
-  { id: "3", name: "Sports" },
-  { id: "4", name: "Geography" },
-  { id: "5", name: "Pop Culture" },
-]
+const STORAGE_KEYS = {
+  categories: "jeopardy_categories",
+  questions: "jeopardy_questions",
+  teams: "jeopardy_teams",
+};
 
-const DEFAULT_QUESTIONS: Question[] = [
-  { id: "1", categoryId: "1", points: 100, question: "What is H2O?", answer: "Water", used: false },
-  {
-    id: "2",
-    categoryId: "1",
-    points: 200,
-    question: "What planet is closest to the sun?",
-    answer: "Mercury",
-    used: false,
-  },
-  {
-    id: "3",
-    categoryId: "2",
-    points: 100,
-    question: "Who was the first president of the USA?",
-    answer: "George Washington",
-    used: false,
-  },
-  {
-    id: "4",
-    categoryId: "3",
-    points: 100,
-    question: "How many players are on a basketball team?",
-    answer: "5",
-    used: false,
-  },
-  { id: "5", categoryId: "4", points: 100, question: "What is the capital of France?", answer: "Paris", used: false },
-]
+function loadFromStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === "undefined") return defaultValue;
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error("Failed to save to localStorage:", error);
+  }
+}
 
 export default function JeopardyGame() {
-  const [teams, setTeams] = useState<Team[]>([])
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES)
-  const [questions, setQuestions] = useState<Question[]>(DEFAULT_QUESTIONS)
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
-  const [currentTeam, setCurrentTeam] = useState<Team | null>(null)
-  const [showTeamManager, setShowTeamManager] = useState(false)
-  const [showCategoryManager, setShowCategoryManager] = useState(false)
-  const [showResetDialog, setShowResetDialog] = useState(false)
-  const [finalQuestion, setFinalQuestion] = useState({ question: "", answer: "" })
-  const [showFinalQuestion, setShowFinalQuestion] = useState(false)
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
+    null
+  );
+  const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
+  const [showTeamManager, setShowTeamManager] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [finalQuestion, setFinalQuestion] = useState({
+    question: "",
+    answer: "",
+  });
+  const [showFinalQuestion, setShowFinalQuestion] = useState(false);
+  const [showClearDataDialog, setShowClearDataDialog] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    const savedCategories = loadFromStorage<Category[]>(
+      STORAGE_KEYS.categories,
+      []
+    );
+    const savedQuestions = loadFromStorage<Question[]>(
+      STORAGE_KEYS.questions,
+      []
+    );
+    const savedTeams = loadFromStorage<Team[]>(STORAGE_KEYS.teams, []);
+
+    setCategories(savedCategories);
+    setQuestions(savedQuestions);
+    setTeams(savedTeams);
+    setIsInitialized(true);
+  }, []);
+
+  // Save categories to localStorage whenever they change (after initialization)
+  useEffect(() => {
+    if (isInitialized) {
+      saveToStorage(STORAGE_KEYS.categories, categories);
+    }
+  }, [categories, isInitialized]);
+
+  // Save questions to localStorage whenever they change (after initialization)
+  useEffect(() => {
+    if (isInitialized) {
+      saveToStorage(STORAGE_KEYS.questions, questions);
+    }
+  }, [questions, isInitialized]);
+
+  // Save teams to localStorage whenever they change (after initialization)
+  useEffect(() => {
+    if (isInitialized) {
+      saveToStorage(STORAGE_KEYS.teams, teams);
+    }
+  }, [teams, isInitialized]);
+
+  const handleClearAllData = () => {
+    localStorage.removeItem(STORAGE_KEYS.categories);
+    localStorage.removeItem(STORAGE_KEYS.questions);
+    localStorage.removeItem(STORAGE_KEYS.teams);
+    setCategories([]);
+    setQuestions([]);
+    setTeams([]);
+    setShowClearDataDialog(false);
+  };
 
   const handleQuestionClick = (question: Question) => {
     if (!question.used) {
-      setSelectedQuestion(question)
+      setSelectedQuestion(question);
     }
-  }
+  };
 
   const handleScoreUpdate = (teamId: string, points: number) => {
-    setTeams(teams.map((team) => (team.id === teamId ? { ...team, score: team.score + points } : team)))
+    const updatedTeams = teams.map((team) =>
+      team.id === teamId ? { ...team, score: team.score + points } : team
+    );
+    setTeams(updatedTeams);
     if (selectedQuestion) {
-      setQuestions(questions.map((q) => (q.id === selectedQuestion.id ? { ...q, used: true } : q)))
-      setSelectedQuestion(null)
-      setCurrentTeam(null)
+      const updatedQuestions = questions.map((q) =>
+        q.id === selectedQuestion.id ? { ...q, used: true } : q
+      );
+      setQuestions(updatedQuestions);
+      setSelectedQuestion(null);
+      setCurrentTeam(null);
     }
-  }
+  };
 
   const handleCloseQuestion = () => {
-    setSelectedQuestion(null)
-    setCurrentTeam(null)
-  }
+    setSelectedQuestion(null);
+    setCurrentTeam(null);
+  };
 
   const handleResetBoard = () => {
-    setQuestions(questions.map((q) => ({ ...q, used: false })))
-    setShowResetDialog(false)
-  }
+    const resetQuestions = questions.map((q) => ({ ...q, used: false }));
+    setQuestions(resetQuestions);
+    setShowResetDialog(false);
+  };
 
   const handleFullReset = () => {
-    setQuestions(questions.map((q) => ({ ...q, used: false })))
-    setTeams(teams.map((team) => ({ ...team, score: 0 })))
-    setShowResetDialog(false)
-  }
+    const resetQuestions = questions.map((q) => ({ ...q, used: false }));
+    const resetTeams = teams.map((team) => ({ ...team, score: 0 }));
+    setQuestions(resetQuestions);
+    setTeams(resetTeams);
+    setShowResetDialog(false);
+  };
 
   return (
     <div className="h-screen bg-jeopardy-blue text-white flex flex-col overflow-hidden">
       <div className="container mx-auto px-4 lg:px-8 py-2 flex flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="mb-2 text-center flex-shrink-0">
-          <h1
-            className="text-2xl lg:text-4xl font-bold tracking-tight mb-0.5 text-jeopardy-gold"
-            style={{ fontFamily: "serif" }}
-          >
-            JEOPARDY!
+          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight mb-0.5 text-jeopardy-gold font-jeopardy">
+            JEOPARDY 3G!
           </h1>
-          <p className="text-xs lg:text-sm text-white/80">Host-Controlled Quiz Game</p>
         </div>
 
-        {/* Control Panel */}
-        <div className="mb-2 flex flex-wrap gap-1.5 justify-center flex-shrink-0">
+        <div className="mb-2 flex flex-wrap gap-1.5 justify-center flex-shrink-0 mt-2">
           <Button
             onClick={() => setShowTeamManager(true)}
             variant="outline"
@@ -145,16 +199,30 @@ export default function JeopardyGame() {
           >
             Final Question
           </Button>
+          <Button
+            onClick={() => setShowClearDataDialog(true)}
+            variant="outline"
+            size="sm"
+            className="bg-white/10 text-white border-red-500/50 hover:bg-red-500 hover:text-white text-xs h-6 px-2"
+          >
+            <Trash2 className="mr-1 h-2.5 w-2.5" />
+            Clear All Data
+          </Button>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-          {/* Scoreboard */}
+        <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden mt-2">
           <div className="flex-shrink-0">
             <Scoreboard
               teams={teams}
               currentTeam={currentTeam}
               onUpdateScore={(teamId, points) => {
-                setTeams(teams.map((team) => (team.id === teamId ? { ...team, score: team.score + points } : team)))
+                setTeams(
+                  teams.map((team) =>
+                    team.id === teamId
+                      ? { ...team, score: team.score + points }
+                      : team
+                  )
+                );
               }}
               onSetCurrentTeam={setCurrentTeam}
             />
@@ -162,7 +230,11 @@ export default function JeopardyGame() {
 
           {/* Game Board */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <GameBoard categories={categories} questions={questions} onQuestionClick={handleQuestionClick} />
+            <GameBoard
+              categories={categories}
+              questions={questions}
+              onQuestionClick={handleQuestionClick}
+            />
           </div>
         </div>
 
@@ -181,17 +253,24 @@ export default function JeopardyGame() {
         <Dialog open={showTeamManager} onOpenChange={setShowTeamManager}>
           <DialogContent className="max-w-2xl bg-jeopardy-blue-light border-jeopardy-gold">
             <DialogHeader>
-              <DialogTitle className="text-jeopardy-gold text-2xl">Team Management</DialogTitle>
+              <DialogTitle className="text-jeopardy-gold text-2xl">
+                Team Management
+              </DialogTitle>
             </DialogHeader>
             <TeamManager teams={teams} onTeamsChange={setTeams} />
           </DialogContent>
         </Dialog>
 
         {/* Category Manager Dialog */}
-        <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
+        <Dialog
+          open={showCategoryManager}
+          onOpenChange={setShowCategoryManager}
+        >
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-jeopardy-blue-light border-jeopardy-gold">
             <DialogHeader>
-              <DialogTitle className="text-jeopardy-gold text-2xl">Category & Question Management</DialogTitle>
+              <DialogTitle className="text-jeopardy-gold text-2xl">
+                Category & Question Management
+              </DialogTitle>
             </DialogHeader>
             <CategoryManager
               categories={categories}
@@ -206,8 +285,12 @@ export default function JeopardyGame() {
         <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
           <DialogContent className="bg-jeopardy-blue-light border-jeopardy-gold">
             <DialogHeader>
-              <DialogTitle className="text-jeopardy-gold">Reset Game</DialogTitle>
-              <DialogDescription className="text-white/80">Choose how you want to reset the game</DialogDescription>
+              <DialogTitle className="text-jeopardy-gold">
+                Reset Game
+              </DialogTitle>
+              <DialogDescription className="text-white/80">
+                Choose how you want to reset the game
+              </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-2 py-4">
               <Button
@@ -233,14 +316,21 @@ export default function JeopardyGame() {
         <Dialog open={showFinalQuestion} onOpenChange={setShowFinalQuestion}>
           <DialogContent className="bg-jeopardy-blue-light border-jeopardy-gold">
             <DialogHeader>
-              <DialogTitle className="text-jeopardy-gold text-2xl">Final Jeopardy!</DialogTitle>
+              <DialogTitle className="text-jeopardy-gold text-2xl">
+                Final Jeopardy!
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label className="text-white">Question</Label>
                 <Textarea
                   value={finalQuestion.question}
-                  onChange={(e) => setFinalQuestion({ ...finalQuestion, question: e.target.value })}
+                  onChange={(e) =>
+                    setFinalQuestion({
+                      ...finalQuestion,
+                      question: e.target.value,
+                    })
+                  }
                   placeholder="Enter final question..."
                   className="bg-jeopardy-blue text-white border-jeopardy-gold/30"
                 />
@@ -249,7 +339,12 @@ export default function JeopardyGame() {
                 <Label className="text-white">Answer</Label>
                 <Input
                   value={finalQuestion.answer}
-                  onChange={(e) => setFinalQuestion({ ...finalQuestion, answer: e.target.value })}
+                  onChange={(e) =>
+                    setFinalQuestion({
+                      ...finalQuestion,
+                      answer: e.target.value,
+                    })
+                  }
                   placeholder="Enter answer..."
                   className="bg-jeopardy-blue text-white border-jeopardy-gold/30"
                 />
@@ -265,10 +360,12 @@ export default function JeopardyGame() {
                       className="w-32 bg-jeopardy-blue text-white border-jeopardy-gold/30"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          const points = Number.parseInt((e.target as HTMLInputElement).value)
+                          const points = Number.parseInt(
+                            (e.target as HTMLInputElement).value
+                          );
                           if (!isNaN(points)) {
-                            handleScoreUpdate(team.id, points)
-                            ;(e.target as HTMLInputElement).value = ""
+                            handleScoreUpdate(team.id, points);
+                            (e.target as HTMLInputElement).value = "";
                           }
                         }
                       }}
@@ -279,7 +376,41 @@ export default function JeopardyGame() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Clear All Data Dialog */}
+        <Dialog
+          open={showClearDataDialog}
+          onOpenChange={setShowClearDataDialog}
+        >
+          <DialogContent className="bg-jeopardy-blue-light border-red-500">
+            <DialogHeader>
+              <DialogTitle className="text-red-400">Clear All Data</DialogTitle>
+              <DialogDescription className="text-white/80">
+                This will permanently delete all categories, questions, teams,
+                and scores from localStorage. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 py-4">
+              <Button
+                onClick={handleClearAllData}
+                variant="outline"
+                size="sm"
+                className="border-red-500 text-red-400 hover:bg-red-500 hover:text-white text-sm py-2"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Yes, Delete All Data
+              </Button>
+              <Button
+                onClick={() => setShowClearDataDialog(false)}
+                size="sm"
+                className="bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90 text-sm py-2"
+              >
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
-  )
+  );
 }

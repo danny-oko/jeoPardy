@@ -86,10 +86,10 @@ export function CategoryManager({
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCategory()}
             placeholder="Category name..."
-            className="bg-jeopardy-blue text-white border-jeopardy-gold/30"
+            className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
           <Button onClick={addCategory} className="bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
             Add
           </Button>
         </div>
@@ -105,8 +105,8 @@ export function CategoryManager({
               className="inline-flex items-center gap-2 bg-jeopardy-blue border border-jeopardy-gold/30 px-4 py-2 rounded-lg"
             >
               <span className="text-white">{category.name}</span>
-              <button onClick={() => deleteCategory(category.id)} className="text-red-400 hover:text-red-300">
-                <Trash2 className="h-4 w-4" />
+              <button onClick={() => deleteCategory(category.id)} className="text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 className="h-4 w-4 text-red-400" />
               </button>
             </div>
           ))}
@@ -171,7 +171,7 @@ export function CategoryManager({
             value={newQuestion.question}
             onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
             placeholder="Enter question..."
-            className="bg-jeopardy-blue text-white border-jeopardy-gold/30"
+            className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
         </div>
 
@@ -181,12 +181,12 @@ export function CategoryManager({
             value={newQuestion.answer}
             onChange={(e) => setNewQuestion({ ...newQuestion, answer: e.target.value })}
             placeholder="Enter answer..."
-            className="bg-jeopardy-blue text-white border-jeopardy-gold/30"
+            className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
         </div>
 
         <Button onClick={addQuestion} className="w-full bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90">
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
           Add Question
         </Button>
       </div>
@@ -211,9 +211,9 @@ export function CategoryManager({
                   size="sm"
                   variant="outline"
                   onClick={() => deleteQuestion(question.id)}
-                  className="border-red-500 text-red-400 hover:bg-red-500/10"
+                  className="bg-jeopardy-blue border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-red-400" />
                 </Button>
               </div>
             </Card>

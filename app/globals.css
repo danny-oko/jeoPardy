@@ -120,11 +120,31 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@font-face {
+  font-family: "Jeopardy 3G";
+  src: local("Jeopardy 3G"), local("Jeopardy3G"), local("Gyparody"),
+    url("https://fonts.cdnfonts.com/s/14570/Jeopardy3G.woff") format("woff"),
+    url("/fonts/Jeopardy3G.woff") format("woff"),
+    url("/fonts/Jeopardy3G.woff2") format("woff2"),
+    url("/fonts/Jeopardy3G.ttf") format("truetype"),
+    url("/fonts/Gyparody.woff") format("woff"),
+    url("/fonts/Gyparody.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  .font-jeopardy {
+    font-family: "Jeopardy 3G", "Gyparody", "Montserrat", serif, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.05em;
   }
 }
