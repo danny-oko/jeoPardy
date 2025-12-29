@@ -21,6 +21,7 @@ export function QuestionModal({ question, teams, currentTeam, onScoreUpdate, onC
   const [showAnswer, setShowAnswer] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string>(currentTeam?.id || "")
   const [customPoints, setCustomPoints] = useState(question.points.toString())
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
 
   useEffect(() => {
     if (currentTeam) {
@@ -71,20 +72,78 @@ export function QuestionModal({ question, teams, currentTeam, onScoreUpdate, onC
             </p>
           </Card>
 
+          {/* Answer Options */}
+          {question.answerOptions && question.answerOptions.length > 0 && !showAnswer && (
+            <div className="space-y-2 flex-shrink-0">
+              <Label className="text-white text-sm">Select an answer:</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {question.answerOptions.map((option, index) => (
+                  <Button
+                    key={index}
+                    onClick={() => setSelectedOption(option)}
+                    variant={selectedOption === option ? "default" : "outline"}
+                    className={`
+                      text-left justify-start h-auto py-3 px-4 text-base
+                      ${
+                        selectedOption === option
+                          ? "bg-jeopardy-gold text-jeopardy-blue border-jeopardy-gold"
+                          : "bg-jeopardy-blue/50 text-white border-jeopardy-gold/30 hover:bg-jeopardy-gold/20 hover:border-jeopardy-gold/50"
+                      }
+                    `}
+                  >
+                    <span className="font-semibold mr-2 text-jeopardy-gold">{String.fromCharCode(65 + index)}.</span>
+                    <span>{option}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Show Answer Button */}
           {!showAnswer && (
             <Button
               onClick={() => setShowAnswer(true)}
-              className="w-full bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90 text-sm py-2 flex-shrink-0"
+              disabled={question.answerOptions && question.answerOptions.length > 0 && !selectedOption}
+              className="w-full bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90 text-sm py-2 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Reveal Answer
+              {question.answerOptions && question.answerOptions.length > 0
+                ? selectedOption
+                  ? "Reveal Answer"
+                  : "Please select an answer first"
+                : "Reveal Answer"}
             </Button>
           )}
 
           {/* Answer */}
           {showAnswer && (
-            <Card className="bg-jeopardy-gold/20 border-jeopardy-gold p-4 lg:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 flex-shrink-0">
-              <p className="text-lg lg:text-xl xl:text-2xl text-center text-jeopardy-gold font-bold break-words">{question.answer}</p>
+            <Card className="bg-jeopardy-gold/20 border-jeopardy-gold p-4 lg:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 flex-shrink-0 space-y-3">
+              {question.answerOptions && question.answerOptions.length > 0 && selectedOption && (
+                <div className="space-y-2">
+                  <p className="text-sm text-jeopardy-gold/80">Your selection:</p>
+                  <div
+                    className={`p-3 rounded-lg border-2 ${
+                      selectedOption.trim().toLowerCase() === question.answer.trim().toLowerCase()
+                        ? "bg-green-500/20 border-green-500"
+                        : "bg-red-500/20 border-red-500"
+                    }`}
+                  >
+                    <p
+                      className={`text-base lg:text-lg font-semibold ${
+                        selectedOption.trim().toLowerCase() === question.answer.trim().toLowerCase()
+                          ? "text-green-300"
+                          : "text-red-300"
+                      }`}
+                    >
+                      {selectedOption.trim().toLowerCase() === question.answer.trim().toLowerCase() ? "✓ Correct!" : "✗ Incorrect"}
+                    </p>
+                    <p className="text-white/80 text-sm mt-1">{selectedOption}</p>
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-jeopardy-gold/80 mb-2">Correct Answer:</p>
+                <p className="text-lg lg:text-xl xl:text-2xl text-center text-jeopardy-gold font-bold break-words">{question.answer}</p>
+              </div>
             </Card>
           )}
 

@@ -18,4 +18,5 @@ export interface Question {
   answer: string
   used: boolean
   image?: string // Base64 encoded image data URL
+  answerOptions?: string[] // Multiple choice answer options
 }

@@ -30,8 +30,10 @@ export function CategoryManager({
     question: "",
     answer: "",
     image: "" as string | undefined,
+    answerOptions: [] as string[],
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [newOption, setNewOption] = useState("")
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
@@ -79,8 +81,45 @@ export function CategoryManager({
     setImagePreview(null)
   }
 
+  const addAnswerOption = () => {
+    if (newOption.trim() && !newQuestion.answerOptions.includes(newOption.trim())) {
+      setNewQuestion({
+        ...newQuestion,
+        answerOptions: [...newQuestion.answerOptions, newOption.trim()],
+      })
+      setNewOption("")
+    }
+  }
+
+  const removeAnswerOption = (option: string) => {
+    setNewQuestion({
+      ...newQuestion,
+      answerOptions: newQuestion.answerOptions.filter((o) => o !== option),
+    })
+  }
+
+  const addAnswerToOptions = () => {
+    if (newQuestion.answer.trim() && !newQuestion.answerOptions.includes(newQuestion.answer.trim())) {
+      setNewQuestion({
+        ...newQuestion,
+        answerOptions: [...newQuestion.answerOptions, newQuestion.answer.trim()],
+      })
+    }
+  }
+
   const addQuestion = () => {
     if (newQuestion.categoryId && newQuestion.question.trim() && newQuestion.answer.trim()) {
+      // Ensure answer is in options if options exist
+      let finalOptions = newQuestion.answerOptions
+      if (finalOptions.length > 0 && !finalOptions.includes(newQuestion.answer.trim())) {
+        finalOptions = [...finalOptions, newQuestion.answer.trim()]
+      }
+      
+      // Shuffle options for random order
+      const shuffledOptions = finalOptions.length > 0 
+        ? [...finalOptions].sort(() => Math.random() - 0.5)
+        : undefined
+
       const question: Question = {
         id: Date.now().toString(),
         categoryId: newQuestion.categoryId,
@@ -89,6 +128,7 @@ export function CategoryManager({
         answer: newQuestion.answer.trim(),
         used: false,
         image: newQuestion.image,
+        answerOptions: shuffledOptions,
       }
       onQuestionsChange([...questions, question])
       setNewQuestion({
@@ -97,8 +137,10 @@ export function CategoryManager({
         question: "",
         answer: "",
         image: undefined,
+        answerOptions: [],
       })
       setImagePreview(null)
+      setNewOption("")
     }
   }
 
@@ -211,13 +253,65 @@ export function CategoryManager({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Answer</Label>
+          <Label className="text-white">Answer (Correct Answer)</Label>
           <Input
             value={newQuestion.answer}
             onChange={(e) => setNewQuestion({ ...newQuestion, answer: e.target.value })}
-            placeholder="Enter answer..."
+            placeholder="Enter correct answer..."
             className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-white">Answer Options (Optional - Multiple Choice)</Label>
+            {newQuestion.answer.trim() && (
+              <Button
+                type="button"
+                onClick={addAnswerToOptions}
+                size="sm"
+                variant="outline"
+                className="text-xs bg-jeopardy-gold/20 border-jeopardy-gold text-jeopardy-gold hover:bg-jeopardy-gold/30"
+              >
+                Add Answer to Options
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newOption}
+              onChange={(e) => setNewOption(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addAnswerOption()}
+              placeholder="Enter an option..."
+              className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
+            />
+            <Button
+              type="button"
+              onClick={addAnswerOption}
+              size="sm"
+              className="bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {newQuestion.answerOptions.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {newQuestion.answerOptions.map((option, index) => (
+                <div
+                  key={index}
+                  className="inline-flex items-center gap-2 bg-jeopardy-gold/20 border border-jeopardy-gold/50 px-3 py-1 rounded-lg"
+                >
+                  <span className="text-white text-sm">{option}</span>
+                  <button
+                    onClick={() => removeAnswerOption(option)}
+                    className="text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -280,6 +374,12 @@ export function CategoryManager({
                       <>
                         <span className="text-white/60">•</span>
                         <ImageIcon className="h-4 w-4 text-jeopardy-gold/60" />
+                      </>
+                    )}
+                    {question.answerOptions && question.answerOptions.length > 0 && (
+                      <>
+                        <span className="text-white/60">•</span>
+                        <span className="text-xs text-jeopardy-gold/60">MC ({question.answerOptions.length} options)</span>
                       </>
                     )}
                   </div>
