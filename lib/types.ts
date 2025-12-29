@@ -17,4 +17,5 @@ export interface Question {
   question: string
   answer: string
   used: boolean
+  image?: string // Base64 encoded image data URL
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Image as ImageIcon, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Category, Question } from "@/lib/types"
 
@@ -29,7 +29,9 @@ export function CategoryManager({
     points: "100",
     question: "",
     answer: "",
+    image: "" as string | undefined,
   })
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
@@ -47,6 +49,36 @@ export function CategoryManager({
     onQuestionsChange(questions.filter((q) => q.categoryId !== categoryId))
   }
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Check if file is an image
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file")
+        return
+      }
+      
+      // Check file size (limit to 5MB to avoid localStorage issues)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size must be less than 5MB")
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setNewQuestion({ ...newQuestion, image: base64String })
+        setImagePreview(base64String)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setNewQuestion({ ...newQuestion, image: undefined })
+    setImagePreview(null)
+  }
+
   const addQuestion = () => {
     if (newQuestion.categoryId && newQuestion.question.trim() && newQuestion.answer.trim()) {
       const question: Question = {
@@ -56,6 +88,7 @@ export function CategoryManager({
         question: newQuestion.question.trim(),
         answer: newQuestion.answer.trim(),
         used: false,
+        image: newQuestion.image,
       }
       onQuestionsChange([...questions, question])
       setNewQuestion({
@@ -63,7 +96,9 @@ export function CategoryManager({
         points: "100",
         question: "",
         answer: "",
+        image: undefined,
       })
+      setImagePreview(null)
     }
   }
 
@@ -185,6 +220,44 @@ export function CategoryManager({
           />
         </div>
 
+        <div className="space-y-2">
+          <Label className="text-white">Image (Optional)</Label>
+          <div className="space-y-2">
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-w-full max-h-48 object-contain rounded-lg border border-jeopardy-gold/30"
+                />
+                <Button
+                  type="button"
+                  onClick={removeImage}
+                  size="sm"
+                  variant="outline"
+                  className="absolute top-2 right-2 bg-red-500/80 border-red-500 text-white hover:bg-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-jeopardy-gold/30 rounded-lg cursor-pointer hover:border-jeopardy-gold/50 transition-colors bg-jeopardy-blue/50">
+                <div className="flex flex-col items-center justify-center">
+                  <ImageIcon className="h-8 w-8 text-jeopardy-gold/60 mb-2" />
+                  <span className="text-sm text-white/70">Click to upload image</span>
+                  <span className="text-xs text-white/50 mt-1">Max 5MB</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+        </div>
+
         <Button onClick={addQuestion} className="w-full bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90">
           <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
           Add Question
@@ -203,7 +276,22 @@ export function CategoryManager({
                     <span className="text-jeopardy-gold font-bold">${question.points}</span>
                     <span className="text-white/60">•</span>
                     <span className="text-white/80">{getCategoryName(question.categoryId)}</span>
+                    {question.image && (
+                      <>
+                        <span className="text-white/60">•</span>
+                        <ImageIcon className="h-4 w-4 text-jeopardy-gold/60" />
+                      </>
+                    )}
                   </div>
+                  {question.image && (
+                    <div className="my-2">
+                      <img
+                        src={question.image}
+                        alt="Question image"
+                        className="max-w-full max-h-32 object-contain rounded-lg border border-jeopardy-gold/30"
+                      />
+                    </div>
+                  )}
                   <p className="text-white">{question.question}</p>
                   <p className="text-jeopardy-gold/80 text-sm">→ {question.answer}</p>
                 </div>
