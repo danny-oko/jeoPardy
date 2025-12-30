@@ -26,12 +26,73 @@ const STORAGE_KEYS = {
   teams: "jeopardy_teams",
 };
 
+// Helper function to check localStorage usage
+function getStorageUsage(): {
+  used: number;
+  total: number;
+  percentage: number;
+} {
+  if (typeof window === "undefined") {
+    return { used: 0, total: 0, percentage: 0 };
+  }
+
+  let total = 0;
+  let used = 0;
+
+  try {
+    // Estimate total storage (typically 5-10MB, we'll use 5MB as conservative estimate)
+    total = 5 * 1024 * 1024; // 5MB in bytes
+
+    // Calculate used storage
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          used += item.length + key.length;
+        }
+      }
+    }
+
+    // Account for overhead (roughly 2x for encoding)
+    used = used * 2;
+  } catch (error) {
+    console.error("Error calculating storage usage:", error);
+  }
+
+  return {
+    used,
+    total,
+    percentage: total > 0 ? (used / total) * 100 : 0,
+  };
+}
+
 function loadFromStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === "undefined") return defaultValue;
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch {
+    if (!item) return defaultValue;
+
+    const parsed = JSON.parse(item);
+
+    // Validate and normalize questions data structure
+    if (key === STORAGE_KEYS.questions && Array.isArray(parsed)) {
+      return parsed.map((q: any) => ({
+        ...q,
+        answerOptions: q.answerOptions || undefined, // Ensure answerOptions exists or is undefined
+        image: q.image || undefined, // Ensure image exists or is undefined
+        used: q.used ?? false, // Ensure used defaults to false
+      })) as T;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error(`Failed to load ${key} from localStorage:`, error);
+    // If corrupted, clear it and return default
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore removal errors
+    }
     return defaultValue;
   }
 }
@@ -39,9 +100,48 @@ function loadFromStorage<T>(key: string, defaultValue: T): T {
 function saveToStorage<T>(key: string, value: T): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
+    const serialized = JSON.stringify(value);
+    const sizeInMB = new Blob([serialized]).size / (1024 * 1024);
+
+    // Check size before saving (localStorage limit is typically 5-10MB)
+    if (sizeInMB > 4.5) {
+      console.warn(
+        `Data size (${sizeInMB.toFixed(2)}MB) is approaching localStorage limit`
+      );
+      const usage = getStorageUsage();
+      if (usage.percentage > 90) {
+        alert(
+          `Warning: Storage is ${usage.percentage.toFixed(1)}% full. ` +
+            `Consider removing some images or questions to prevent data loss.`
+        );
+      }
+    }
+
+    localStorage.setItem(key, serialized);
+  } catch (error: any) {
     console.error("Failed to save to localStorage:", error);
+
+    // Handle specific quota exceeded error
+    if (error.name === "QuotaExceededError" || error.code === 22) {
+      const usage = getStorageUsage();
+      alert(
+        `Storage limit exceeded! (${usage.percentage.toFixed(1)}% used)\n\n` +
+          "The data is too large to save. Try:\n" +
+          "• Removing some images (they take the most space)\n" +
+          "• Deleting unused questions\n" +
+          "• Using smaller image files\n" +
+          "• Click 'Clear All Data' to start fresh"
+      );
+    } else if (error.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+      alert(
+        "Storage quota reached! Please clear some data or remove large images."
+      );
+    } else {
+      console.error("Unexpected localStorage error:", error);
+      alert(
+        "Failed to save data. Please try again or clear your browser's localStorage."
+      );
+    }
   }
 }
 
@@ -92,7 +192,17 @@ export default function JeopardyGame() {
   // Save questions to localStorage whenever they change (after initialization)
   useEffect(() => {
     if (isInitialized) {
-      saveToStorage(STORAGE_KEYS.questions, questions);
+      // Clean up questions before saving to ensure data integrity
+      const cleanedQuestions = questions.map((q) => ({
+        ...q,
+        // Remove undefined fields to reduce size
+        image: q.image || undefined,
+        answerOptions:
+          q.answerOptions && q.answerOptions.length > 0
+            ? q.answerOptions
+            : undefined,
+      }));
+      saveToStorage(STORAGE_KEYS.questions, cleanedQuestions);
     }
   }, [questions, isInitialized]);
 

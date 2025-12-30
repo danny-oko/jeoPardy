@@ -1,20 +1,26 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card } from "@/components/ui/card"
-import { Plus, Trash2, Image as ImageIcon, X } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Category, Question } from "@/lib/types"
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import type { Category, Question } from "@/lib/types";
+import { Image as ImageIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useState } from "react";
 
 interface CategoryManagerProps {
-  categories: Category[]
-  questions: Question[]
-  onCategoriesChange: (categories: Category[]) => void
-  onQuestionsChange: (questions: Question[]) => void
+  categories: Category[];
+  questions: Question[];
+  onCategoriesChange: (categories: Category[]) => void;
+  onQuestionsChange: (questions: Question[]) => void;
 }
 
 export function CategoryManager({
@@ -23,7 +29,7 @@ export function CategoryManager({
   onCategoriesChange,
   onQuestionsChange,
 }: CategoryManagerProps) {
-  const [newCategoryName, setNewCategoryName] = useState("")
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [newQuestion, setNewQuestion] = useState({
     categoryId: "",
     points: "100",
@@ -31,126 +37,209 @@ export function CategoryManager({
     answer: "",
     image: "" as string | undefined,
     answerOptions: [] as string[],
-  })
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [newOption, setNewOption] = useState("")
+  });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [newOption, setNewOption] = useState("");
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(
+    null
+  );
 
   const addCategory = () => {
     if (newCategoryName.trim()) {
       const category: Category = {
         id: Date.now().toString(),
         name: newCategoryName.trim(),
-      }
-      onCategoriesChange([...categories, category])
-      setNewCategoryName("")
+      };
+      onCategoriesChange([...categories, category]);
+      setNewCategoryName("");
     }
-  }
+  };
 
   const deleteCategory = (categoryId: string) => {
-    onCategoriesChange(categories.filter((c) => c.id !== categoryId))
-    onQuestionsChange(questions.filter((q) => q.categoryId !== categoryId))
-  }
+    onCategoriesChange(categories.filter((c) => c.id !== categoryId));
+    onQuestionsChange(questions.filter((q) => q.categoryId !== categoryId));
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       // Check if file is an image
       if (!file.type.startsWith("image/")) {
-        alert("Please select an image file")
-        return
+        alert("Please select an image file");
+        return;
       }
-      
+
       // Check file size (limit to 5MB to avoid localStorage issues)
       if (file.size > 5 * 1024 * 1024) {
-        alert("Image size must be less than 5MB")
-        return
+        alert("Image size must be less than 5MB");
+        return;
       }
 
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string
-        setNewQuestion({ ...newQuestion, image: base64String })
-        setImagePreview(base64String)
-      }
-      reader.readAsDataURL(file)
+        const base64String = reader.result as string;
+        setNewQuestion({ ...newQuestion, image: base64String });
+        setImagePreview(base64String);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const removeImage = () => {
-    setNewQuestion({ ...newQuestion, image: undefined })
-    setImagePreview(null)
-  }
+    setNewQuestion({ ...newQuestion, image: undefined });
+    setImagePreview(null);
+  };
 
   const addAnswerOption = () => {
-    if (newOption.trim() && !newQuestion.answerOptions.includes(newOption.trim())) {
+    if (
+      newOption.trim() &&
+      !newQuestion.answerOptions.includes(newOption.trim())
+    ) {
       setNewQuestion({
         ...newQuestion,
         answerOptions: [...newQuestion.answerOptions, newOption.trim()],
-      })
-      setNewOption("")
+      });
+      setNewOption("");
     }
-  }
+  };
 
   const removeAnswerOption = (option: string) => {
     setNewQuestion({
       ...newQuestion,
       answerOptions: newQuestion.answerOptions.filter((o) => o !== option),
-    })
-  }
+    });
+  };
 
   const addAnswerToOptions = () => {
-    if (newQuestion.answer.trim() && !newQuestion.answerOptions.includes(newQuestion.answer.trim())) {
+    if (
+      newQuestion.answer.trim() &&
+      !newQuestion.answerOptions.includes(newQuestion.answer.trim())
+    ) {
       setNewQuestion({
         ...newQuestion,
-        answerOptions: [...newQuestion.answerOptions, newQuestion.answer.trim()],
-      })
+        answerOptions: [
+          ...newQuestion.answerOptions,
+          newQuestion.answer.trim(),
+        ],
+      });
     }
-  }
+  };
+
+  const startEditingQuestion = (question: Question) => {
+    setEditingQuestionId(question.id);
+    setNewQuestion({
+      categoryId: question.categoryId,
+      points: question.points.toString(),
+      question: question.question,
+      answer: question.answer,
+      image: question.image,
+      answerOptions: question.answerOptions ? [...question.answerOptions] : [],
+    });
+    setImagePreview(question.image || null);
+    setNewOption("");
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditing = () => {
+    setEditingQuestionId(null);
+    setNewQuestion({
+      categoryId: "",
+      points: "100",
+      question: "",
+      answer: "",
+      image: undefined,
+      answerOptions: [],
+    });
+    setImagePreview(null);
+    setNewOption("");
+  };
 
   const addQuestion = () => {
-    if (newQuestion.categoryId && newQuestion.question.trim() && newQuestion.answer.trim()) {
-      // Ensure answer is in options if options exist
-      let finalOptions = newQuestion.answerOptions
-      if (finalOptions.length > 0 && !finalOptions.includes(newQuestion.answer.trim())) {
-        finalOptions = [...finalOptions, newQuestion.answer.trim()]
+    if (
+      newQuestion.categoryId &&
+      newQuestion.question.trim() &&
+      newQuestion.answer.trim()
+    ) {
+      // Check image size before adding
+      if (newQuestion.image) {
+        const imageSizeMB = new Blob([newQuestion.image]).size / (1024 * 1024);
+        if (imageSizeMB > 2) {
+          alert(
+            `Image is too large (${imageSizeMB.toFixed(2)}MB). ` +
+              "Please use a smaller image (recommended: under 1MB) to avoid storage issues."
+          );
+          return;
+        }
       }
-      
-      // Shuffle options for random order
-      const shuffledOptions = finalOptions.length > 0 
-        ? [...finalOptions].sort(() => Math.random() - 0.5)
-        : undefined
+
+      // Ensure answer is in options if options exist
+      let finalOptions = newQuestion.answerOptions;
+      if (
+        finalOptions.length > 0 &&
+        !finalOptions.includes(newQuestion.answer.trim())
+      ) {
+        finalOptions = [...finalOptions, newQuestion.answer.trim()];
+      }
+
+      // Shuffle options for random order (only for new questions, not when editing)
+      const shuffledOptions =
+        finalOptions.length > 0
+          ? editingQuestionId
+            ? finalOptions // Keep order when editing
+            : [...finalOptions].sort(() => Math.random() - 0.5) // Shuffle for new questions
+          : undefined;
 
       const question: Question = {
-        id: Date.now().toString(),
+        id: editingQuestionId || Date.now().toString(),
         categoryId: newQuestion.categoryId,
         points: Number.parseInt(newQuestion.points),
         question: newQuestion.question.trim(),
         answer: newQuestion.answer.trim(),
-        used: false,
+        used: editingQuestionId
+          ? questions.find((q) => q.id === editingQuestionId)?.used || false
+          : false, // Preserve used status when editing
         image: newQuestion.image,
         answerOptions: shuffledOptions,
+      };
+
+      try {
+        if (editingQuestionId) {
+          // Update existing question
+          onQuestionsChange(
+            questions.map((q) => (q.id === editingQuestionId ? question : q))
+          );
+          cancelEditing();
+        } else {
+          // Add new question
+          onQuestionsChange([...questions, question]);
+          setNewQuestion({
+            categoryId: newQuestion.categoryId,
+            points: "100",
+            question: "",
+            answer: "",
+            image: undefined,
+            answerOptions: [],
+          });
+          setImagePreview(null);
+          setNewOption("");
+        }
+      } catch (error) {
+        console.error("Failed to save question:", error);
+        alert(
+          "Failed to save question. This might be due to storage limits. Try removing some images or questions."
+        );
       }
-      onQuestionsChange([...questions, question])
-      setNewQuestion({
-        categoryId: newQuestion.categoryId,
-        points: "100",
-        question: "",
-        answer: "",
-        image: undefined,
-        answerOptions: [],
-      })
-      setImagePreview(null)
-      setNewOption("")
     }
-  }
+  };
 
   const deleteQuestion = (questionId: string) => {
-    onQuestionsChange(questions.filter((q) => q.id !== questionId))
-  }
+    onQuestionsChange(questions.filter((q) => q.id !== questionId));
+  };
 
   const getCategoryName = (categoryId: string) => {
-    return categories.find((c) => c.id === categoryId)?.name || "Unknown"
-  }
+    return categories.find((c) => c.id === categoryId)?.name || "Unknown";
+  };
 
   return (
     <div className="space-y-8">
@@ -165,7 +254,10 @@ export function CategoryManager({
             placeholder="Category name..."
             className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
-          <Button onClick={addCategory} className="bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90">
+          <Button
+            onClick={addCategory}
+            className="bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90"
+          >
             <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
             Add
           </Button>
@@ -174,7 +266,9 @@ export function CategoryManager({
 
       {/* Categories List */}
       <div>
-        <Label className="text-jeopardy-gold text-lg mb-3 block">Current Categories</Label>
+        <Label className="text-jeopardy-gold text-lg mb-3 block">
+          Current Categories
+        </Label>
         <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
             <div
@@ -182,7 +276,10 @@ export function CategoryManager({
               className="inline-flex items-center gap-2 bg-jeopardy-blue border border-jeopardy-gold/30 px-4 py-2 rounded-lg"
             >
               <span className="text-white">{category.name}</span>
-              <button onClick={() => deleteCategory(category.id)} className="text-red-400 hover:text-red-300 transition-colors">
+              <button
+                onClick={() => deleteCategory(category.id)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
                 <Trash2 className="h-4 w-4 text-red-400" />
               </button>
             </div>
@@ -190,16 +287,32 @@ export function CategoryManager({
         </div>
       </div>
 
-      {/* Add Question */}
+      {/* Add/Edit Question */}
       <div className="space-y-4 border-t border-jeopardy-gold/30 pt-6">
-        <Label className="text-jeopardy-gold text-lg">Add Question</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-jeopardy-gold text-lg">
+            {editingQuestionId ? "Edit Question" : "Add Question"}
+          </Label>
+          {editingQuestionId && (
+            <Button
+              onClick={cancelEditing}
+              variant="outline"
+              size="sm"
+              className="border-jeopardy-gold/50 text-jeopardy-gold hover:bg-jeopardy-gold/20"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-white">Category</Label>
             <Select
               value={newQuestion.categoryId}
-              onValueChange={(value) => setNewQuestion({ ...newQuestion, categoryId: value })}
+              onValueChange={(value) =>
+                setNewQuestion({ ...newQuestion, categoryId: value })
+              }
             >
               <SelectTrigger className="bg-jeopardy-blue text-white border-jeopardy-gold/30">
                 <SelectValue placeholder="Select category..." />
@@ -222,7 +335,9 @@ export function CategoryManager({
             <Label className="text-white">Points</Label>
             <Select
               value={newQuestion.points}
-              onValueChange={(value) => setNewQuestion({ ...newQuestion, points: value })}
+              onValueChange={(value) =>
+                setNewQuestion({ ...newQuestion, points: value })
+              }
             >
               <SelectTrigger className="bg-jeopardy-blue text-white border-jeopardy-gold/30">
                 <SelectValue />
@@ -246,7 +361,9 @@ export function CategoryManager({
           <Label className="text-white">Question</Label>
           <Textarea
             value={newQuestion.question}
-            onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
+            onChange={(e) =>
+              setNewQuestion({ ...newQuestion, question: e.target.value })
+            }
             placeholder="Enter question..."
             className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
@@ -256,7 +373,9 @@ export function CategoryManager({
           <Label className="text-white">Answer (Correct Answer)</Label>
           <Input
             value={newQuestion.answer}
-            onChange={(e) => setNewQuestion({ ...newQuestion, answer: e.target.value })}
+            onChange={(e) =>
+              setNewQuestion({ ...newQuestion, answer: e.target.value })
+            }
             placeholder="Enter correct answer..."
             className="bg-jeopardy-blue text-white border-jeopardy-gold/30 placeholder:text-white/50"
           />
@@ -264,7 +383,9 @@ export function CategoryManager({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-white">Answer Options (Optional - Multiple Choice)</Label>
+            <Label className="text-white">
+              Answer Options (Optional - Multiple Choice)
+            </Label>
             {newQuestion.answer.trim() && (
               <Button
                 type="button"
@@ -338,7 +459,9 @@ export function CategoryManager({
               <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-jeopardy-gold/30 rounded-lg cursor-pointer hover:border-jeopardy-gold/50 transition-colors bg-jeopardy-blue/50">
                 <div className="flex flex-col items-center justify-center">
                   <ImageIcon className="h-8 w-8 text-jeopardy-gold/60 mb-2" />
-                  <span className="text-sm text-white/70">Click to upload image</span>
+                  <span className="text-sm text-white/70">
+                    Click to upload image
+                  </span>
                   <span className="text-xs text-white/50 mt-1">Max 5MB</span>
                 </div>
                 <input
@@ -352,36 +475,71 @@ export function CategoryManager({
           </div>
         </div>
 
-        <Button onClick={addQuestion} className="w-full bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90">
-          <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
-          Add Question
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={addQuestion}
+            className="flex-1 bg-jeopardy-gold text-jeopardy-blue hover:bg-jeopardy-gold/90"
+          >
+            {editingQuestionId ? (
+              <>
+                <Pencil className="h-4 w-4 mr-1 text-jeopardy-blue" />
+                Update Question
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-1 text-jeopardy-blue" />
+                Add Question
+              </>
+            )}
+          </Button>
+          {editingQuestionId && (
+            <Button
+              onClick={cancelEditing}
+              variant="outline"
+              className="border-jeopardy-gold/50 text-jeopardy-gold hover:bg-jeopardy-gold/20"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Questions List */}
       <div className="border-t border-jeopardy-gold/30 pt-6">
-        <Label className="text-jeopardy-gold text-lg mb-4 block">All Questions</Label>
+        <Label className="text-jeopardy-gold text-lg mb-4 block">
+          All Questions
+        </Label>
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {questions.map((question) => (
-            <Card key={question.id} className="bg-jeopardy-blue border-jeopardy-gold/30 p-3">
+            <Card
+              key={question.id}
+              className="bg-jeopardy-blue border-jeopardy-gold/30 p-3"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-jeopardy-gold font-bold">${question.points}</span>
+                    <span className="text-jeopardy-gold font-bold">
+                      ${question.points}
+                    </span>
                     <span className="text-white/60">•</span>
-                    <span className="text-white/80">{getCategoryName(question.categoryId)}</span>
+                    <span className="text-white/80">
+                      {getCategoryName(question.categoryId)}
+                    </span>
                     {question.image && (
                       <>
                         <span className="text-white/60">•</span>
                         <ImageIcon className="h-4 w-4 text-jeopardy-gold/60" />
                       </>
                     )}
-                    {question.answerOptions && question.answerOptions.length > 0 && (
-                      <>
-                        <span className="text-white/60">•</span>
-                        <span className="text-xs text-jeopardy-gold/60">MC ({question.answerOptions.length} options)</span>
-                      </>
-                    )}
+                    {question.answerOptions &&
+                      question.answerOptions.length > 0 && (
+                        <>
+                          <span className="text-white/60">•</span>
+                          <span className="text-xs text-jeopardy-gold/60">
+                            MC ({question.answerOptions.length} options)
+                          </span>
+                        </>
+                      )}
                   </div>
                   {question.image && (
                     <div className="my-2">
@@ -393,21 +551,33 @@ export function CategoryManager({
                     </div>
                   )}
                   <p className="text-white">{question.question}</p>
-                  <p className="text-jeopardy-gold/80 text-sm">→ {question.answer}</p>
+                  <p className="text-jeopardy-gold/80 text-sm">
+                    → {question.answer}
+                  </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => deleteQuestion(question.id)}
-                  className="bg-jeopardy-blue border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
-                >
-                  <Trash2 className="h-4 w-4 text-red-400" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => startEditingQuestion(question)}
+                    className="bg-jeopardy-blue border-jeopardy-gold/50 text-jeopardy-gold hover:bg-jeopardy-gold/20 hover:border-jeopardy-gold"
+                  >
+                    <Pencil className="h-4 w-4 text-jeopardy-gold" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => deleteQuestion(question.id)}
+                    className="bg-jeopardy-blue border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
